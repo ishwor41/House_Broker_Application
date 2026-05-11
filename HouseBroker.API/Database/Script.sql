@@ -1,4 +1,12 @@
-﻿IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
+﻿IF DB_ID('HouseBrokerDb') IS NULL
+CREATE DATABASE HouseBrokerDb;
+GO
+
+USE HouseBrokerDb;
+GO
+
+
+IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
 BEGIN
     CREATE TABLE [__EFMigrationsHistory] (
         [MigrationId] nvarchar(150) NOT NULL,
@@ -266,4 +274,124 @@ GO
 
 COMMIT;
 GO
+BEGIN TRANSACTION;
+GO
 
+IF OBJECT_ID(N'[dbo].[sp_Property_Manage]', 'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[sp_Property_Manage];
+GO
+
+CREATE PROCEDURE [dbo].[sp_Property_Manage]
+    @Id UNIQUEIDENTIFIER = NULL,
+    @Title NVARCHAR(200) = NULL,
+    @PropertyType NVARCHAR(50) = NULL,
+    @Location NVARCHAR(200) = NULL,
+    @Price DECIMAL(18,2) = NULL,
+    @Features NVARCHAR(MAX) = NULL,
+    @CommissionAmount DECIMAL(18,2) = NULL,
+    @CreatedDate DATETIME = NULL,
+    @CreatedBy UNIQUEIDENTIFIER = NULL,
+    @RecordStatus INT = 1,
+    @UpdatedDate DATETIME = NULL,
+    @UpdatedBy UNIQUEIDENTIFIER = NULL,
+    @flag CHAR(1),
+    @MaxPrice DECIMAL(18,2) = NULL,
+    @MinPrice DECIMAL(18,2) = NULL,
+    @UserId UNIQUEIDENTIFIER = NULL,
+    @ImageUrl NVARCHAR(500) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @flag = 'I'
+    BEGIN
+        INSERT INTO Properties
+        (
+            Id, Title, PropertyType, Location, Price, Features,
+            CommissionAmount, PropertyImageUrl,
+            CreatedDate, CreatedBy, RecordStatus
+        )
+        VALUES
+        (
+            NEWID(), @Title, @PropertyType, @Location, @Price, @Features,
+            @CommissionAmount, @ImageUrl,
+            @CreatedDate, @CreatedBy, @RecordStatus
+        );
+    END
+
+    ELSE IF @flag = 'U'
+    BEGIN
+        UPDATE Properties
+        SET
+            Title = @Title,
+            PropertyType = @PropertyType,
+            [Location] = @Location,
+            Price = @Price,
+            Features = @Features,
+            CommissionAmount = @CommissionAmount,
+            PropertyImageUrl = @ImageUrl,
+            UpdatedDate = @UpdatedDate,
+            UpdatedBy = @UpdatedBy
+        WHERE Id = @Id AND RecordStatus = 1;
+    END
+
+    ELSE IF @flag = 'G'
+    BEGIN
+        SELECT
+            Id,
+            Title,
+            PropertyType,
+            Location,
+            Price,
+            Features,
+            CASE WHEN @UserId IS NULL THEN NULL ELSE CommissionAmount END AS CommissionAmount,
+            PropertyImageUrl
+        FROM Properties
+        WHERE Id = @Id AND RecordStatus = 1;
+    END
+
+    ELSE IF @flag = 'D'
+    BEGIN
+        UPDATE Properties
+        SET RecordStatus = 0
+        WHERE Id = @Id;
+    END
+
+    ELSE IF @flag = 'L'
+    BEGIN
+        SELECT 
+            Id, Title, PropertyType, Location, Price, Features,
+            CASE WHEN @UserId IS NULL THEN NULL ELSE CommissionAmount END AS CommissionAmount,
+            PropertyImageUrl
+        FROM Properties
+        WHERE RecordStatus = 1
+            AND (@Title IS NULL OR Title LIKE '%' + @Title + '%')
+            AND (@Features IS NULL OR Features LIKE '%' + @Features + '%')
+            AND (@PropertyType IS NULL OR PropertyType = @PropertyType)
+            AND (@Location IS NULL OR Location LIKE '%' + @Location + '%')
+            AND (@MinPrice IS NULL OR Price >= @MinPrice)
+            AND (@MaxPrice IS NULL OR Price <= @MaxPrice)
+            AND (@UserId IS NULL OR CreatedBy = @UserId)
+
+        UNION
+
+        SELECT 
+            Id, Title, PropertyType, Location, Price, Features,
+            NULL AS CommissionAmount,
+            PropertyImageUrl
+        FROM Properties
+        WHERE RecordStatus = 1
+            AND @UserId IS NOT NULL
+            AND (@Title IS NULL OR Title LIKE '%' + @Title + '%')
+            AND (@Features IS NULL OR Features LIKE '%' + @Features + '%')
+            AND (@PropertyType IS NULL OR PropertyType = @PropertyType)
+            AND (@Location IS NULL OR Location LIKE '%' + @Location + '%')
+            AND (@MinPrice IS NULL OR Price >= @MinPrice)
+            AND (@MaxPrice IS NULL OR Price <= @MaxPrice)
+            AND CreatedBy <> @UserId;
+    END
+END
+GO
+
+COMMIT;
+GO
