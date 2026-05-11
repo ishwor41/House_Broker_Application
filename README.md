@@ -201,3 +201,5 @@ Behavior:
 Removes property from database
 Clears cached data
 Returns success response
+
+We can set commission and update commission via CommissionSetting table.
