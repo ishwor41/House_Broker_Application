@@ -203,3 +203,5 @@ Clears cached data
 Returns success response
 
 We can set commission and update commission via CommissionSetting table.
+
+You can get stored procedure from DBScript file.
