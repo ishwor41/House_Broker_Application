@@ -109,6 +109,8 @@ Token is used for authorization in protected endpoints
 
 🏠 Property Module
 ➤ Get All Properties
+Authorization:
+✔ Broker/HouseSeeker
 Checks from auth token if the user is HouseSeeker or Broker
 GET /api/Property
 
@@ -149,7 +151,8 @@ Saves property in database
 Clears cached property data
 ➤ Get Property by ID
 GET /api/Property/{id}
-
+Authorization:
+✔ Broker/HouseSeeker
 Description:
 Returns single property by unique ID.
 
